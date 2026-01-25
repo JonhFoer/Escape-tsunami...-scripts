@@ -2,21 +2,18 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Escape Tsunami For Brainrots!",
-   LoadingTitle = "Loading Ultimate Script...",
-   LoadingSubtitle = "kaboom",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "TsunamiScript",
-      FileName = "Config"
-   }
+   LoadingTitle = "Loading Script...",
+   LoadingSubtitle = "by jonh foer",
+   ConfigurationSaving = {Enabled = true, FolderName = "TsunamiScript", FileName = "Config"},
+   KeySystem = false -- Key system officially removed
 })
 
 -- TABS
 local Tab1 = Window:CreateTab("General", 4483362458)
 local Tab2 = Window:CreateTab("Auto", 4483345998)
 
--- SECTION 1: GENERAL & ESP
-local Section1 = Tab1:CreateSection("Main Functions")
+-- --- TAB 1: GENERAL ---
+local Header1 = Tab1:CreateSection("general")
 
 Tab1:CreateButton({
    Name = "Infinite Yield",
@@ -25,7 +22,32 @@ Tab1:CreateButton({
    end,
 })
 
-_G.SelectedRarities = {} 
+local HeaderESP = Tab1:CreateSection("brainrot esp")
+_G.SelectedRarities = {"Common"} 
+_G.BrainrotESP = false
+
+local function RefreshESP()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v.Name == "BrainrotHighlight" then v:Destroy() end
+    end
+    if not _G.BrainrotESP then return end
+    local folder = workspace:FindFirstChild("ActiveBrainrots")
+    if folder then
+        for _, rarityName in pairs(_G.SelectedRarities) do
+            local rarityFolder = folder:FindFirstChild(rarityName)
+            if rarityFolder then
+                for _, brainrot in pairs(rarityFolder:GetChildren()) do
+                    if brainrot.Name == "RenderedBrainrot" then
+                        local highlight = Instance.new("Highlight")
+                        highlight.Name = "BrainrotHighlight"
+                        highlight.FillColor = Color3.fromRGB(0, 255, 127)
+                        highlight.Parent = brainrot
+                    end
+                end
+            end
+        end
+    end
+end
 
 Tab1:CreateDropdown({
    Name = "Select ESP Rarities",
@@ -35,21 +57,7 @@ Tab1:CreateDropdown({
    Flag = "RarityDropdown",
    Callback = function(Options)
        _G.SelectedRarities = Options
-       local folder = workspace:FindFirstChild("ActiveBrainrots")
-       if folder then
-           for _, rarityFolder in pairs(folder:GetChildren()) do
-               local isSelected = false
-               for _, selectedName in pairs(_G.SelectedRarities) do
-                   if rarityFolder.Name == selectedName then isSelected = true break end
-               end
-               if not isSelected then
-                   for _, brainrot in pairs(rarityFolder:GetChildren()) do
-                       local h = brainrot:FindFirstChild("BrainrotHighlight")
-                       if h then h:Destroy() end
-                   end
-               end
-           end
-       end
+       if _G.BrainrotESP then RefreshESP() end
    end,
 })
 
@@ -59,131 +67,94 @@ Tab1:CreateToggle({
    Flag = "EspToggle",
    Callback = function(state)
        _G.BrainrotESP = state
-       if _G.BrainrotESP then
-           task.spawn(function()
-               while _G.BrainrotESP do
-                   local folder = workspace:FindFirstChild("ActiveBrainrots")
-                   if folder then
-                       for _, rarityName in pairs(_G.SelectedRarities) do
-                           local rarityFolder = folder:FindFirstChild(rarityName)
-                           if rarityFolder then
-                               for _, brainrot in pairs(rarityFolder:GetChildren()) do
-                                   if brainrot.Name == "RenderedBrainrot" and not brainrot:FindFirstChild("BrainrotHighlight") then
-                                       local highlight = Instance.new("Highlight")
-                                       highlight.Name = "BrainrotHighlight"
-                                       highlight.FillColor = Color3.fromRGB(0, 255, 127)
-                                       highlight.Parent = brainrot
-                                   end
-                               end
-                           end
-                       end
-                   end
-                   task.wait(1)
-               end
-           end)
-       else
-           for _, v in pairs(workspace:GetDescendants()) do
-               if v.Name == "BrainrotHighlight" then v:Destroy() end
-           end
-       end
+       RefreshESP()
    end,
 })
 
--- SECTION 2: AUTO & NOTIFICATIONS
-local Section2 = Tab2:CreateSection("Alerter Settings")
-
--- Default Sound ID
-_G.CelestialSoundID = "73087452882886"
-
-Tab2:CreateInput({
-   Name = "Celestial Sound ID",
-   PlaceholderText = "Paste ID here...",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-       -- Strip out everything except numbers
-       local id = Text:match("%d+")
-       if id then
-           _G.CelestialSoundID = id
-       end
-   end,
-})
+-- --- TAB 2: AUTO ---
+local Header2 = Tab2:CreateSection("alerter")
+_G.CelestialSoundID = "73087452882886" 
 
 Tab2:CreateToggle({
-   Name = "Celestial alerter",
+   Name = "Celestial Alerter",
    CurrentValue = false,
    Flag = "CelestialAlert",
    Callback = function(state)
        _G.CelestialNotifier = state
+       local folder = workspace:WaitForChild("ActiveBrainrots"):WaitForChild("Celestial")
        if _G.CelestialNotifier then
-           -- Fixed missing quote from your original snippet
-           local folder = workspace:WaitForChild("ActiveBrainrots"):WaitForChild("Celestial")
-           
            _G.CelestialConnection = folder.ChildAdded:Connect(function(child)
-               if _G.CelestialNotifier and child.Name == "RenderedBrainrot" then
-                   -- Play Custom Sound
-                   local sound = Instance.new("Sound")
+               if child.Name == "RenderedBrainrot" then
+                   local sound = Instance.new("Sound", game:GetService("SoundService"))
                    sound.SoundId = "rbxassetid://" .. _G.CelestialSoundID
-                   sound.Parent = game:GetService("SoundService")
                    sound:Play()
-                   sound.Ended:Connect(function() sound:Destroy() end)
-                   
-                   -- Rayfield Notification
-                   Rayfield:Notify({
-                       Title = "CELESTIAL SPAWNED!",
-                       Content = "A Celestial Brainrot has appeared",
-                       Duration = 5,
-                       Image = 4483345998,
-                   })
+                   Rayfield:Notify({Title = "CELESTIAL DETECTED!", Content = "A Celestial Brainrot is active!", Duration = 10})
                end
            end)
        else
-           if _G.CelestialConnection then 
-               _G.CelestialConnection:Disconnect() 
-           end
+           if _G.CelestialConnection then _G.CelestialConnection:Disconnect() end
        end
    end,
 })
 
-local Section3 = Tab2:CreateSection("Auto Collect")
+Tab2:CreateInput({
+   Name = "Celestial Sound ID",
+   PlaceholderText = "Paste ID here...",
+   Callback = function(Text) _G.CelestialSoundID = Text end,
+})
 
+local Header3 = Tab2:CreateSection("farm")
+
+-- FIXED MONEY COLLECTOR (Strict name: Collect)
 Tab2:CreateToggle({
-   Name = "Auto collect radioactive coin",
+   Name = "Auto collect money",
    CurrentValue = false,
-   Flag = "RadioactiveFarm", 
+   Flag = "MagicCollect",
    Callback = function(state)
-       _G.GlobalFarm = state
-       if _G.GlobalFarm then
+       _G.MagicCollect = state
+       task.spawn(function()
+           while _G.MagicCollect do
+               local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+               if root then
+                   for _, v in pairs(workspace:GetDescendants()) do
+                       if v.Name == "Collect" and v:IsA("BasePart") then
+                           firetouchinterest(root, v, 0)
+                           task.wait()
+                           firetouchinterest(root, v, 1)
+                       end
+                   end
+               end
+               task.wait(1)
+           end
+       end)
+   end,
+})
+
+-- FIXED COIN PULLER (No Pushing)
+Tab2:CreateToggle({
+   Name = "Auto collect all coins",
+   CurrentValue = false,
+   Flag = "CoinPuller",
+   Callback = function(state)
+       _G.CoinPuller = state
+       if _G.CoinPuller then
            task.spawn(function()
-               while _G.GlobalFarm do
+               while _G.CoinPuller do
                    local char = game.Players.LocalPlayer.Character
                    local root = char and char:FindFirstChild("HumanoidRootPart")
                    if root then
-                       for _, object in pairs(workspace:GetDescendants()) do
-                           if not _G.GlobalFarm then break end
-                           if object.Name == "Radioactive Coin" then
-                               local part = object:IsA("BasePart") and object or object:FindFirstChildWhichIsA("BasePart", true)
-                               if part and not part:FindFirstChild("CoinWeld") then
-                                   part.Anchored = false
-                                   part.CanCollide = false
-                                   local weld = Instance.new("WeldConstraint")
-                                   weld.Name = "CoinWeld"
-                                   weld.Part0 = part
-                                   weld.Part1 = root
-                                   weld.Parent = part
-                                   part.CFrame = root.CFrame
-                                   task.spawn(function()
-                                       while part and part.Parent and _G.GlobalFarm do
-                                           part.CFrame = root.CFrame * CFrame.new(0, 0.1, 0)
-                                           task.wait(0.05)
-                                           part.CFrame = root.CFrame * CFrame.new(0, -0.1, 0)
-                                           task.wait(0.05)
-                                       end
-                                   end)
-                               end
+                       for _, v in pairs(workspace:GetDescendants()) do
+                           if v.Name:lower():find("coin") and v:IsA("BasePart") then
+                               v.CanCollide = false 
+                               v.Anchored = true    
+                               v.CFrame = root.CFrame 
+                               
+                               firetouchinterest(root, v, 0)
+                               firetouchinterest(root, v, 1)
                            end
                        end
                    end
-                   task.wait(0.5)
+                   task.wait(0.1) 
                end
            end)
        end
