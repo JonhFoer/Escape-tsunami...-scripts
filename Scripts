@@ -1,0 +1,191 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Escape Tsunami For Brainrots!",
+   LoadingTitle = "Loading Ultimate Script...",
+   LoadingSubtitle = "kaboom",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "TsunamiScript",
+      FileName = "Config"
+   }
+})
+
+-- TABS
+local Tab1 = Window:CreateTab("General", 4483362458)
+local Tab2 = Window:CreateTab("Auto", 4483345998)
+
+-- SECTION 1: GENERAL & ESP
+local Section1 = Tab1:CreateSection("Main Functions")
+
+Tab1:CreateButton({
+   Name = "Infinite Yield",
+   Callback = function()
+       loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+   end,
+})
+
+_G.SelectedRarities = {} 
+
+Tab1:CreateDropdown({
+   Name = "Select ESP Rarities",
+   Options = {"Celestial", "Common", "Cosmic", "Divine", "Epic", "Legendary", "Mythical", "Rare", "Secret", "Uncommon"},
+   CurrentOption = {"Common"},
+   MultipleOptions = true,
+   Flag = "RarityDropdown",
+   Callback = function(Options)
+       _G.SelectedRarities = Options
+       local folder = workspace:FindFirstChild("ActiveBrainrots")
+       if folder then
+           for _, rarityFolder in pairs(folder:GetChildren()) do
+               local isSelected = false
+               for _, selectedName in pairs(_G.SelectedRarities) do
+                   if rarityFolder.Name == selectedName then isSelected = true break end
+               end
+               if not isSelected then
+                   for _, brainrot in pairs(rarityFolder:GetChildren()) do
+                       local h = brainrot:FindFirstChild("BrainrotHighlight")
+                       if h then h:Destroy() end
+                   end
+               end
+           end
+       end
+   end,
+})
+
+Tab1:CreateToggle({
+   Name = "Brainrot ESP",
+   CurrentValue = false,
+   Flag = "EspToggle",
+   Callback = function(state)
+       _G.BrainrotESP = state
+       if _G.BrainrotESP then
+           task.spawn(function()
+               while _G.BrainrotESP do
+                   local folder = workspace:FindFirstChild("ActiveBrainrots")
+                   if folder then
+                       for _, rarityName in pairs(_G.SelectedRarities) do
+                           local rarityFolder = folder:FindFirstChild(rarityName)
+                           if rarityFolder then
+                               for _, brainrot in pairs(rarityFolder:GetChildren()) do
+                                   if brainrot.Name == "RenderedBrainrot" and not brainrot:FindFirstChild("BrainrotHighlight") then
+                                       local highlight = Instance.new("Highlight")
+                                       highlight.Name = "BrainrotHighlight"
+                                       highlight.FillColor = Color3.fromRGB(0, 255, 127)
+                                       highlight.Parent = brainrot
+                                   end
+                               end
+                           end
+                       end
+                   end
+                   task.wait(1)
+               end
+           end)
+       else
+           for _, v in pairs(workspace:GetDescendants()) do
+               if v.Name == "BrainrotHighlight" then v:Destroy() end
+           end
+       end
+   end,
+})
+
+-- SECTION 2: AUTO & NOTIFICATIONS
+local Section2 = Tab2:CreateSection("Alerter Settings")
+
+-- Default Sound ID
+_G.CelestialSoundID = "73087452882886"
+
+Tab2:CreateInput({
+   Name = "Celestial Sound ID",
+   PlaceholderText = "Paste ID here...",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+       -- Strip out everything except numbers
+       local id = Text:match("%d+")
+       if id then
+           _G.CelestialSoundID = id
+       end
+   end,
+})
+
+Tab2:CreateToggle({
+   Name = "Celestial alerter",
+   CurrentValue = false,
+   Flag = "CelestialAlert",
+   Callback = function(state)
+       _G.CelestialNotifier = state
+       if _G.CelestialNotifier then
+           -- Fixed missing quote from your original snippet
+           local folder = workspace:WaitForChild("ActiveBrainrots"):WaitForChild("Celestial")
+           
+           _G.CelestialConnection = folder.ChildAdded:Connect(function(child)
+               if _G.CelestialNotifier and child.Name == "RenderedBrainrot" then
+                   -- Play Custom Sound
+                   local sound = Instance.new("Sound")
+                   sound.SoundId = "rbxassetid://" .. _G.CelestialSoundID
+                   sound.Parent = game:GetService("SoundService")
+                   sound:Play()
+                   sound.Ended:Connect(function() sound:Destroy() end)
+                   
+                   -- Rayfield Notification
+                   Rayfield:Notify({
+                       Title = "CELESTIAL SPAWNED!",
+                       Content = "A Celestial Brainrot has appeared",
+                       Duration = 5,
+                       Image = 4483345998,
+                   })
+               end
+           end)
+       else
+           if _G.CelestialConnection then 
+               _G.CelestialConnection:Disconnect() 
+           end
+       end
+   end,
+})
+
+local Section3 = Tab2:CreateSection("Auto Collect")
+
+Tab2:CreateToggle({
+   Name = "Auto collect radioactive coin",
+   CurrentValue = false,
+   Flag = "RadioactiveFarm", 
+   Callback = function(state)
+       _G.GlobalFarm = state
+       if _G.GlobalFarm then
+           task.spawn(function()
+               while _G.GlobalFarm do
+                   local char = game.Players.LocalPlayer.Character
+                   local root = char and char:FindFirstChild("HumanoidRootPart")
+                   if root then
+                       for _, object in pairs(workspace:GetDescendants()) do
+                           if not _G.GlobalFarm then break end
+                           if object.Name == "Radioactive Coin" then
+                               local part = object:IsA("BasePart") and object or object:FindFirstChildWhichIsA("BasePart", true)
+                               if part and not part:FindFirstChild("CoinWeld") then
+                                   part.Anchored = false
+                                   part.CanCollide = false
+                                   local weld = Instance.new("WeldConstraint")
+                                   weld.Name = "CoinWeld"
+                                   weld.Part0 = part
+                                   weld.Part1 = root
+                                   weld.Parent = part
+                                   part.CFrame = root.CFrame
+                                   task.spawn(function()
+                                       while part and part.Parent and _G.GlobalFarm do
+                                           part.CFrame = root.CFrame * CFrame.new(0, 0.1, 0)
+                                           task.wait(0.05)
+                                           part.CFrame = root.CFrame * CFrame.new(0, -0.1, 0)
+                                           task.wait(0.05)
+                                       end
+                                   end)
+                               end
+                           end
+                       end
+                   end
+                   task.wait(0.5)
+               end
+           end)
+       end
+   end,
+})
