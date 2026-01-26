@@ -1,112 +1,103 @@
+local KeyLink = "https://link-hub.net/3056861/Qr0BspfVP3nA"
+setclipboard(KeyLink)
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+Rayfield:Notify({
+    Title = "Key Link Copied!",
+    Content = "The link is on your clipboard. Paste it into your browser",
+    Duration = 5 
+})
+
+local TweenService = game:GetService("TweenService")
+_G.BaseTweenSpeed = 0.15 
+_G.AutoTourActive = false
+_G.ReverseTourActive = false
+_G.PostWaveBuffer = 0.05 
+_G.CelestialSoundID = "73087452882886" -- Your Default ID
+local CorrectKey = "qwertyuiopasdfghjklzxcvbnm123456789"
 
 local Window = Rayfield:CreateWindow({
    Name = "Escape Tsunami For Brainrots!",
-   LoadingTitle = "Loading Script...",
+   LoadingTitle = "Loading cool script",
    LoadingSubtitle = "by jonh foer",
-   ConfigurationSaving = {Enabled = true, FolderName = "TsunamiScript", FileName = "Config"},
-   KeySystem = false -- Key system officially removed
+   ConfigurationSaving = {Enabled = true, FolderName = "TsunamiScript"},
+   KeySystem = true,
+   KeySettings = {
+      Title = "Key required",
+      Subtitle = "Check your clipboard for the link.",
+      Note = "Key link copied.",
+      FileName = "TsunamiKey",
+      SaveKey = true,
+      GrabKeyFromSite = false, 
+      Key = {CorrectKey} 
+   }
 })
 
--- TABS
-local Tab1 = Window:CreateTab("General", 4483362458)
-local Tab2 = Window:CreateTab("Auto", 4483345998)
-
--- --- TAB 1: GENERAL ---
-local Header1 = Tab1:CreateSection("general")
-
-Tab1:CreateButton({
-   Name = "Infinite Yield",
-   Callback = function()
-       loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-   end,
-})
-
-local HeaderESP = Tab1:CreateSection("brainrot esp")
-_G.SelectedRarities = {"Common"} 
-_G.BrainrotESP = false
-
-local function RefreshESP()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v.Name == "BrainrotHighlight" then v:Destroy() end
+local function GetNearestGapIndex()
+    local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
+    local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not gaps or not hrp then return 1 end
+    local nearestIndex, minDistance = 1, math.huge
+    for i = 1, 9 do
+        local gap = gaps:FindFirstChild("Gap" .. i)
+        if gap then
+            local dist = (hrp.Position - gap:GetModelCFrame().Position).Magnitude
+            if dist < minDistance then
+                minDistance, nearestIndex = dist, i
+            end
+        end
     end
-    if not _G.BrainrotESP then return end
-    local folder = workspace:FindFirstChild("ActiveBrainrots")
-    if folder then
-        for _, rarityName in pairs(_G.SelectedRarities) do
-            local rarityFolder = folder:FindFirstChild(rarityName)
-            if rarityFolder then
-                for _, brainrot in pairs(rarityFolder:GetChildren()) do
-                    if brainrot.Name == "RenderedBrainrot" then
-                        local highlight = Instance.new("Highlight")
-                        highlight.Name = "BrainrotHighlight"
-                        highlight.FillColor = Color3.fromRGB(0, 255, 127)
-                        highlight.Parent = brainrot
-                    end
+    return nearestIndex
+end
+
+local function IsPathClear(targetPos)
+    local tsunamiFolder = workspace:FindFirstChild("ActiveTsunamis")
+    if not tsunamiFolder then return true end
+    local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return true end
+    local padding = 45
+    local currentPos = hrp.Position
+    local minX, maxX = math.min(currentPos.X, targetPos.X) - padding, math.max(currentPos.X, targetPos.X) + padding
+    local minZ, maxZ = math.min(currentPos.Z, targetPos.Z) - padding, math.max(currentPos.Z, targetPos.Z) + padding
+    for _, model in pairs(tsunamiFolder:GetChildren()) do
+        for _, part in pairs(model:GetChildren()) do
+            if part:IsA("BasePart") and string.find(string.lower(part.Name), "wave") then
+                local wPos = part.Position
+                if (wPos.X >= minX and wPos.X <= maxX) and (wPos.Z >= minZ and wPos.Z <= maxZ) then
+                    return false 
                 end
             end
         end
     end
+    return true 
 end
 
-Tab1:CreateDropdown({
-   Name = "Select ESP Rarities",
-   Options = {"Celestial", "Common", "Cosmic", "Divine", "Epic", "Legendary", "Mythical", "Rare", "Secret", "Uncommon"},
-   CurrentOption = {"Common"},
-   MultipleOptions = true,
-   Flag = "RarityDropdown",
-   Callback = function(Options)
-       _G.SelectedRarities = Options
-       if _G.BrainrotESP then RefreshESP() end
-   end,
-})
+local function SmartMove(targetPos, areaName)
+    local char = game.Players.LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local finalSpeed = _G.BaseTweenSpeed
+        local areaNum = tonumber(string.match(areaName, "%d+"))
+        if areaNum and areaNum >= 6 then
+            finalSpeed = _G.BaseTweenSpeed * 5.0 
+        end
+        local info = TweenInfo.new(finalSpeed, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(targetPos)})
+        tween:Play()
+        tween.Completed:Wait()
+    end
+end
 
-Tab1:CreateToggle({
-   Name = "Brainrot ESP",
-   CurrentValue = false,
-   Flag = "EspToggle",
-   Callback = function(state)
-       _G.BrainrotESP = state
-       RefreshESP()
-   end,
-})
+local MainTab = Window:CreateTab("Main", 4483362458)
+local AutoTab = Window:CreateTab("Auto", 4483345998)
+local TeleportTab = Window:CreateTab("Teleport", 4483362458)
 
--- --- TAB 2: AUTO ---
-local Header2 = Tab2:CreateSection("alerter")
-_G.CelestialSoundID = "73087452882886" 
+MainTab:CreateSection("General")
+MainTab:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end})
 
-Tab2:CreateToggle({
-   Name = "Celestial Alerter",
-   CurrentValue = false,
-   Flag = "CelestialAlert",
-   Callback = function(state)
-       _G.CelestialNotifier = state
-       local folder = workspace:WaitForChild("ActiveBrainrots"):WaitForChild("Celestial")
-       if _G.CelestialNotifier then
-           _G.CelestialConnection = folder.ChildAdded:Connect(function(child)
-               if child.Name == "RenderedBrainrot" then
-                   local sound = Instance.new("Sound", game:GetService("SoundService"))
-                   sound.SoundId = "rbxassetid://" .. _G.CelestialSoundID
-                   sound:Play()
-                   Rayfield:Notify({Title = "CELESTIAL DETECTED!", Content = "A Celestial Brainrot is active!", Duration = 10})
-               end
-           end)
-       else
-           if _G.CelestialConnection then _G.CelestialConnection:Disconnect() end
-       end
-   end,
-})
-
-Tab2:CreateInput({
-   Name = "Celestial Sound ID",
-   PlaceholderText = "Paste ID here...",
-   Callback = function(Text) _G.CelestialSoundID = Text end,
-})
-
-local Header3 = Tab2:CreateSection("farm")
-
--- FIXED MONEY COLLECTOR (Strict name: Collect)
-Tab2:CreateToggle({
+AutoTab:CreateSection("Farming")
+AutoTab:CreateToggle({
    Name = "Auto collect money",
    CurrentValue = false,
    Flag = "MagicCollect",
@@ -130,31 +121,104 @@ Tab2:CreateToggle({
    end,
 })
 
--- FIXED COIN PULLER (No Pushing)
-Tab2:CreateToggle({
-   Name = "Auto collect all coins",
+AutoTab:CreateSection("Alerts")
+AutoTab:CreateToggle({
+   Name = "Celestial Alerter",
    CurrentValue = false,
-   Flag = "CoinPuller",
    Callback = function(state)
-       _G.CoinPuller = state
-       if _G.CoinPuller then
+       _G.CelestialNotifier = state
+       if state then
            task.spawn(function()
-               while _G.CoinPuller do
-                   local char = game.Players.LocalPlayer.Character
-                   local root = char and char:FindFirstChild("HumanoidRootPart")
-                   if root then
-                       for _, v in pairs(workspace:GetDescendants()) do
-                           if v.Name:lower():find("coin") and v:IsA("BasePart") then
-                               v.CanCollide = false 
-                               v.Anchored = true    
-                               v.CFrame = root.CFrame 
-                               
-                               firetouchinterest(root, v, 0)
-                               firetouchinterest(root, v, 1)
+               while _G.CelestialNotifier do
+                   pcall(function()
+                       local brainrots = workspace:FindFirstChild("ActiveBrainrots")
+                       local celestialFolder = brainrots and brainrots:FindFirstChild("Celestial")
+                       
+                       if celestialFolder and #celestialFolder:GetChildren() > 0 then
+                           local s = Instance.new("Sound", game:GetService("SoundService"))
+                           s.SoundId = "rbxassetid://" .. tostring(_G.CelestialSoundID)
+                           s.Volume = 1
+                           s:Play()
+                           
+                           Rayfield:Notify({
+                               Title = "CELESTIAL DETECTED!",
+                               Content = "idk celestial detected",
+                               Duration = 10
+                           })
+                           task.wait(15) 
+                       end
+                   end)
+                   task.wait(2)
+               end
+           end)
+       end
+   end,
+})
+
+AutoTab:CreateInput({
+   Name = "Celestial Sound ID",
+   PlaceholderText = "Paste ID here...",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      _G.CelestialSoundID = Text
+   end,
+})
+
+TeleportTab:CreateSection("Auto Teleport")
+TeleportTab:CreateToggle({
+   Name = "Start auto teleport",
+   CurrentValue = false,
+   Callback = function(state)
+       _G.AutoTourActive = state
+       if state then
+           _G.ReverseTourActive = false
+           task.spawn(function()
+               local gaps = workspace.Misc.Gaps
+               while _G.AutoTourActive do
+                   local currentPosIndex = GetNearestGapIndex()
+                   for i = 1, 9 do
+                       if not _G.AutoTourActive then break end
+                       if i > currentPosIndex or (i == 1 and currentPosIndex == 9) then
+                           local target = gaps:FindFirstChild("Gap" .. i)
+                           if target then
+                               local targetPos = (target:GetModelCFrame() * CFrame.new(0, -2, 0)).Position
+                               while not IsPathClear(targetPos) and _G.AutoTourActive do task.wait(0.1) end
+                               SmartMove(targetPos, "Gap" .. i)
+                               task.wait(1.5) 
                            end
                        end
                    end
-                   task.wait(0.1) 
+                   task.wait(2) 
+               end
+           end)
+       end
+   end,
+})
+
+TeleportTab:CreateToggle({
+   Name = "Starts reverse auto",
+   CurrentValue = false,
+   Callback = function(state)
+       _G.ReverseTourActive = state
+       if state then
+           _G.AutoTourActive = false
+           task.spawn(function()
+               local gaps = workspace.Misc.Gaps
+               while _G.ReverseTourActive do
+                   local currentPosIndex = GetNearestGapIndex()
+                   if currentPosIndex > 1 then
+                       for i = currentPosIndex - 1, 1, -1 do
+                           if not _G.ReverseTourActive then break end
+                           local target = gaps:FindFirstChild("Gap" .. i)
+                           if target then
+                               local targetPos = (target:GetModelCFrame() * CFrame.new(0, -2, 0)).Position
+                               while not IsPathClear(targetPos) and _G.ReverseTourActive do task.wait(0.1) end
+                               SmartMove(targetPos, "Gap" .. i)
+                               task.wait(1.5) 
+                           end
+                       end
+                   end
+                   task.wait(2) 
                end
            end)
        end
